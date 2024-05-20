@@ -44,6 +44,17 @@ const (
 	ReplaceConcurrent ConcurrencyPolicy = "Replace"
 )
 
+// ClusterJobType defines the type of job
+type ClusterJobType string
+
+const (
+	// CronJob indicates that the ClusterScan (CRD) is a CronJob
+	CronJob ClusterJobType = "CronJob"
+
+	// Job indicates that the ClusterScan(CRD) is a Job
+	Job ClusterJobType = "Job"
+)
+
 // ClusterScanSpec defines the desired state of ClusterScan
 type ClusterScanSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
