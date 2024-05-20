@@ -17,25 +17,79 @@ limitations under the License.
 package v1
 
 import (
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// ConcurrencyPolicy describes how the job will be handled.
+// Only one of the following concurrent policies may be specified.
+// If none of the following policies is specified, the default one
+// is AllowConcurrent.
+// +kubebuilder:validation:Enum=Allow;Forbid;Replace
+type ConcurrencyPolicy string
+
+const (
+	// AllowConcurrent allows CronJobs to run concurrently.
+	AllowConcurrent ConcurrencyPolicy = "Allow"
+
+	// ForbidConcurrent forbids concurrent runs, skipping next run if previous
+	// hasn't finished yet.
+	ForbidConcurrent ConcurrencyPolicy = "Forbid"
+
+	// ReplaceConcurrent cancels currently running job and replaces it with a new one.
+	ReplaceConcurrent ConcurrencyPolicy = "Replace"
+)
+
 // ClusterScanSpec defines the desired state of ClusterScan
 type ClusterScanSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of ClusterScan. Edit clusterscan_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Specifies whether this is a recurring job or not
+	Recurring bool `json:"recurring"`
+
+	// The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
+	Schedule string `json:"schedule"`
+
+	// Specifies how to treat concurrent executions of a Job.
+	// Valid values are:
+	// - "Allow" (default): allows CronJobs to run concurrently;
+	// - "Forbid": forbids concurrent runs, skipping next run if previous run hasn't finished yet;
+	// - "Replace": cancels currently running job and replaces it with a new one
+	// +optional
+	ConcurrencyPolicy ConcurrencyPolicy `json:"concurrencyPolicy,omitempty"`
+
+	// Specifies the job that will be created when executing a CronJob.
+	JobTemplate batchv1.JobTemplateSpec `json:"jobTemplate"`
+
+	// The number of successful finished jobs to retain.
+	// +optional
+	SuccessfulJobsHistoryLimit *int32 `json:"successfulJobsHistoryLimit,omitempty"`
+
+	// The number of failed finished jobs to retain.
+	// +optional
+	FailedJobsHistoryLimit *int32 `json:"failedJobsHistoryLimit,omitempty"`
 }
 
 // ClusterScanStatus defines the observed state of ClusterScan
 type ClusterScanStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	// A list of pointers to currently running jobs.
+	// +optional
+	Active []corev1.ObjectReference `json:"active,omitempty"`
+
+	// Information when was the last time the job was successfully scheduled.
+	// +optional
+	LastScheduleTime *metav1.Time `json:"lastScheduleTime,omitempty"`
+
+	// A detailed status message indicating the progress/completion status of the job.
+	StatusMessage string `json:"statusMessage,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -62,3 +116,5 @@ type ClusterScanList struct {
 func init() {
 	SchemeBuilder.Register(&ClusterScan{}, &ClusterScanList{})
 }
+
+//+kubebuilder:docs-gen:collapse=Root Object Definitions
