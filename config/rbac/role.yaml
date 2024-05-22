@@ -5,9 +5,27 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs/status
+  verbs:
+  - get
+- apiGroups:
   - webapp.clusterscan.api.io
   resources:
-  - clusterscans
+  - cronjobs
   verbs:
   - create
   - delete
@@ -19,13 +37,13 @@ rules:
 - apiGroups:
   - webapp.clusterscan.api.io
   resources:
-  - clusterscans/finalizers
+  - cronjobs/finalizers
   verbs:
   - update
 - apiGroups:
   - webapp.clusterscan.api.io
   resources:
-  - clusterscans/status
+  - cronjobs/status
   verbs:
   - get
   - patch

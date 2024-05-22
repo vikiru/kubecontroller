@@ -8,7 +8,6 @@ metadata:
 spec:
   recurring: True
   schedule: "*/1 * * * *"
-  concurrencyPolicy: Allow # explicitly specify, but Allow is also default.
   jobTemplate:
     spec:
       template:

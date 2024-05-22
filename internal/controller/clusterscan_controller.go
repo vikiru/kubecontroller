@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,9 +42,11 @@ type ClusterScanReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=webapp.clusterscan.api.io,resources=clusterscans,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=webapp.clusterscan.api.io,resources=clusterscans/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=webapp.clusterscan.api.io,resources=clusterscans/finalizers,verbs=update
+//+kubebuilder:rbac:groups=webapp.clusterscan.api.io,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=webapp.clusterscan.api.io,resources=cronjobs/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=webapp.clusterscan.api.io,resources=cronjobs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=batch,resources=jobs/status,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -64,6 +67,33 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Obtain the list of all child jobs
+	var childJobs batchv1.JobList
+	if err := r.List(ctx, &childJobs, client.InNamespace(req.Namespace)); err != nil {
+		log.Error(err, "unable to list child Jobs")
+		return ctrl.Result{}, err
+	}
+
+	// Keep track of all active, successful and failed jobs then output via logger
+
+	var activeJobs []*batchv1.Job
+	var successfulJobs []*batchv1.Job
+	var failedJobs []*batchv1.Job
+
+	for i, job := range childJobs.Items {
+		_, finishType := returnJobStatus(&job)
+		switch finishType {
+		case "":
+			activeJobs = append(activeJobs, &childJobs.Items[i])
+		case batchv1.JobFailed:
+			failedJobs = append(failedJobs, &childJobs.Items[i])
+		case batchv1.JobComplete:
+			successfulJobs = append(successfulJobs, &childJobs.Items[i])
+		}
+	}
+
+	log.V(1).Info("job count", "active jobs", len(activeJobs), "successful jobs", len(successfulJobs), "failed jobs", len(failedJobs))
+
 	// Determine the type of job that the ClusterScan instance represents
 	jobType, _ := determineJobType(clusterScan)
 	uniqueName := createUniqueName(jobType, clusterScan)
@@ -71,8 +101,9 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// Handle recurring CronJobs
 	if jobType == webappv1.ClusterJobType("CronJob") {
 		// Create a CronJob and make the controller the owner
-		cronJob, _ := createCronJob(clusterScan, uniqueName)
+		cronJob, _ := createCronJob(clusterScan)
 		if err := ctrl.SetControllerReference(&clusterScan, cronJob, r.Scheme); err != nil {
+			log.Error(err, "unable to set controller reference for cron job")
 			return ctrl.Result{}, err
 		}
 
@@ -83,17 +114,18 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				logMessage := fmt.Sprintf("Creating a new %s [%s] within %s namespace", jobType, cronJob.Name, cronJob.Namespace)
 				log.Info(logMessage)
 				if err := r.Create(ctx, cronJob); err != nil {
+					log.Error(err, "unable to create CronJob")
 					return ctrl.Result{}, err
 				}
 			}
-			return ctrl.Result{}, err
 		}
 	} else {
 		// Handle non-recurring Jobs
 
 		// Create a Job and make the controller the owner
-		job, _ := createJob(clusterScan, uniqueName)
+		job, _ := createJob(clusterScan)
 		if err := ctrl.SetControllerReference(&clusterScan, job, r.Scheme); err != nil {
+			log.Error(err, "unable to set controller reference for job")
 			return ctrl.Result{}, err
 		}
 
@@ -104,10 +136,10 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				logMessage := fmt.Sprintf("Creating a new %s [%s] within %s namespace", jobType, job.Name, job.Namespace)
 				log.Info(logMessage)
 				if err := r.Create(ctx, job); err != nil {
+					log.Error(err, "unable to create Job")
 					return ctrl.Result{}, err
 				}
 			}
-			return ctrl.Result{}, err
 		}
 	}
 
@@ -131,7 +163,7 @@ func determineJobType(clusterScan webappv1.ClusterScan) (webappv1.ClusterJobType
 }
 
 // createCronJob creates a CronJob matching the metadata and spec provided by the ClusterScan instance.
-func createCronJob(clusterScan webappv1.ClusterScan, name string) (*batchv1.CronJob, error) {
+func createCronJob(clusterScan webappv1.ClusterScan) (*batchv1.CronJob, error) {
 	cronJob := &batchv1.CronJob{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterScan.Name,
@@ -148,10 +180,10 @@ func createCronJob(clusterScan webappv1.ClusterScan, name string) (*batchv1.Cron
 }
 
 // createJob creates a Job matching the metadata and spec provided by the ClusterScan instance.
-func createJob(clusterScan webappv1.ClusterScan, name string) (*batchv1.Job, error) {
+func createJob(clusterScan webappv1.ClusterScan) (*batchv1.Job, error) {
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      clusterScan.Name,
 			Namespace: clusterScan.Namespace,
 		},
 		Spec: clusterScan.Spec.JobTemplate.Spec,
@@ -159,8 +191,19 @@ func createJob(clusterScan webappv1.ClusterScan, name string) (*batchv1.Job, err
 	return job, nil
 }
 
+// createUniqueName creates a unique name for the Job and CronJob matching the metadata and spec provided by the ClusterScan instance.
 func createUniqueName(jobType webappv1.ClusterJobType, clusterScan webappv1.ClusterScan) string {
 	return fmt.Sprintf("%s-%s", clusterScan.Name, strings.ToLower(string(jobType)))
+}
+
+// returnJobStatus returns the status of the Job, marking it as completed if it is completed or failed.
+func returnJobStatus(job *batchv1.Job) (bool, batchv1.JobConditionType) {
+	for _, c := range job.Status.Conditions {
+		if (c.Type == batchv1.JobComplete || c.Type == batchv1.JobFailed) && c.Status == corev1.ConditionTrue {
+			return true, c.Type
+		}
+	}
+	return false, ""
 }
 
 // SetupWithManager sets up the controller with the Manager.

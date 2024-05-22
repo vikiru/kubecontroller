@@ -26,15 +26,6 @@ spec:
             type: object
           spec:
             properties:
-              concurrencyPolicy:
-                enum:
-                - Allow
-                - Forbid
-                - Replace
-                type: string
-              failedJobsHistoryLimit:
-                format: int32
-                type: integer
               jobTemplate:
                 properties:
                   metadata:
@@ -3491,9 +3482,6 @@ spec:
                 type: boolean
               schedule:
                 type: string
-              successfulJobsHistoryLimit:
-                format: int32
-                type: integer
             required:
             - jobTemplate
             - recurring
@@ -3501,26 +3489,6 @@ spec:
             type: object
           status:
             properties:
-              active:
-                items:
-                  properties:
-                    apiVersion:
-                      type: string
-                    fieldPath:
-                      type: string
-                    kind:
-                      type: string
-                    name:
-                      type: string
-                    namespace:
-                      type: string
-                    resourceVersion:
-                      type: string
-                    uid:
-                      type: string
-                  type: object
-                  x-kubernetes-map-type: atomic
-                type: array
               lastScheduleTime:
                 format: date-time
                 type: string
