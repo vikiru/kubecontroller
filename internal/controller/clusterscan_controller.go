@@ -42,9 +42,9 @@ type ClusterScanReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=webapp.clusterscan.api.io,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=webapp.clusterscan.api.io,resources=cronjobs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=webapp.clusterscan.api.io,resources=cronjobs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=webapp.clusterscan.api.io,resources=clusterscans,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=webapp.clusterscan.api.io,resources=clusterscans/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=webapp.clusterscan.api.io,resources=clusterscans/finalizers,verbs=update
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=jobs/status,verbs=get
 

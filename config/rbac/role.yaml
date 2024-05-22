@@ -25,7 +25,7 @@ rules:
 - apiGroups:
   - webapp.clusterscan.api.io
   resources:
-  - cronjobs
+  - clusterscans
   verbs:
   - create
   - delete
@@ -37,13 +37,13 @@ rules:
 - apiGroups:
   - webapp.clusterscan.api.io
   resources:
-  - cronjobs/finalizers
+  - clusterscans/finalizers
   verbs:
   - update
 - apiGroups:
   - webapp.clusterscan.api.io
   resources:
-  - cronjobs/status
+  - clusterscans/status
   verbs:
   - get
   - patch
