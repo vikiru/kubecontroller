@@ -101,7 +101,7 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// Handle recurring CronJobs
 	if jobType == webappv1.ClusterJobType("CronJob") {
 		// Create a CronJob and make the controller the owner
-		cronJob, _ := createCronJob(clusterScan)
+		cronJob, _ := createCronJob(clusterScan, uniqueName)
 		if err := ctrl.SetControllerReference(&clusterScan, cronJob, r.Scheme); err != nil {
 			log.Error(err, "unable to set controller reference for cron job")
 			return ctrl.Result{}, err
@@ -123,7 +123,7 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		// Handle non-recurring Jobs
 
 		// Create a Job and make the controller the owner
-		job, _ := createJob(clusterScan)
+		job, _ := createJob(clusterScan, uniqueName)
 		if err := ctrl.SetControllerReference(&clusterScan, job, r.Scheme); err != nil {
 			log.Error(err, "unable to set controller reference for job")
 			return ctrl.Result{}, err
@@ -163,10 +163,10 @@ func determineJobType(clusterScan webappv1.ClusterScan) (webappv1.ClusterJobType
 }
 
 // createCronJob creates a CronJob matching the metadata and spec provided by the ClusterScan instance.
-func createCronJob(clusterScan webappv1.ClusterScan) (*batchv1.CronJob, error) {
+func createCronJob(clusterScan webappv1.ClusterScan, name string) (*batchv1.CronJob, error) {
 	cronJob := &batchv1.CronJob{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterScan.Name,
+			Name:      name,
 			Namespace: clusterScan.Namespace,
 		},
 		Spec: batchv1.CronJobSpec{
@@ -180,10 +180,10 @@ func createCronJob(clusterScan webappv1.ClusterScan) (*batchv1.CronJob, error) {
 }
 
 // createJob creates a Job matching the metadata and spec provided by the ClusterScan instance.
-func createJob(clusterScan webappv1.ClusterScan) (*batchv1.Job, error) {
+func createJob(clusterScan webappv1.ClusterScan, name string) (*batchv1.Job, error) {
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterScan.Name,
+			Name:      name,
 			Namespace: clusterScan.Namespace,
 		},
 		Spec: clusterScan.Spec.JobTemplate.Spec,
