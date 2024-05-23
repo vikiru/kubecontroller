@@ -148,22 +148,17 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	clusterScan.Status.LastScheduleTime = &metav1.Time{Time: time.Now()}
 	clusterScan.Status.StatusMessage = fmt.Sprintf("A %s with the name [%s] belonging to the namespace %s has been successfully scheduled", jobType, uniqueName, clusterScan.Namespace)
 
-	if err := r.Update(ctx, &clusterScan); err != nil {
+	if err := r.Status().Update(ctx, &clusterScan); err != nil {
 		log.Error(err, "Unable to update cluster scan status")
 		return ctrl.Result{}, err
 	}
 
-	lastScheduledTime := "N/A"
-	if clusterScan.Status.LastScheduleTime != nil {
-		lastScheduledTime = clusterScan.Status.LastScheduleTime.Format("2006-01-02 15:04:05")
-	}
-	statusMessage := clusterScan.Status.StatusMessage
-
-	log.V(1).Info("ClusterScan status", "lastScheduledTime", lastScheduledTime, "statusMessage", statusMessage)
+	log.V(1).Info("ClusterScan status", "status", clusterScan.Status)
 
 	// Cleanup and delete the old jobs (failed and successful)
 
-	if len(failedJobs) > 0 {
+	if len(failedJobs) > 1 {
+		log.Info("Failed jobs count has reached threshold, attempting to delete old jobs.")
 		for _, job := range failedJobs {
 			if err := r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground)); err != nil {
 				log.Error(err, "Unable to delete old failed job")
@@ -174,7 +169,8 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 	}
 
-	if len(successfulJobs) > 0 {
+	if len(successfulJobs) > 3 {
+		log.Info("Successful jobs count has reached threshold, attempting to delete old jobs.")
 		for _, job := range successfulJobs {
 			if err := r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
 				log.Error(err, "Unable to delete old successful job")
