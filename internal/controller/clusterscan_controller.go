@@ -125,7 +125,7 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		// Create a Job and make the controller the owner
 		job, _ := createJob(clusterScan, uniqueName)
 		if err := ctrl.SetControllerReference(&clusterScan, job, r.Scheme); err != nil {
-			log.Error(err, "unable to set controller reference for job")
+			log.Error(err, "Unable to set controller reference for job")
 			return ctrl.Result{}, err
 		}
 
@@ -136,7 +136,7 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				logMessage := fmt.Sprintf("Creating a new %s [%s] within %s namespace", jobType, job.Name, job.Namespace)
 				log.Info(logMessage)
 				if err := r.Create(ctx, job); err != nil {
-					log.Error(err, "unable to create Job")
+					log.Error(err, "Unable to create Job")
 					return ctrl.Result{}, err
 				}
 			}
@@ -153,7 +153,36 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	log.V(1).Info("ClusterScan status", "lastScheduledTime", clusterScan.Status.LastScheduleTime.Format("2006-01-02 15:04:05"), "statusMessage", clusterScan.Status.StatusMessage)
+	lastScheduledTime := "N/A"
+	if clusterScan.Status.LastScheduleTime != nil {
+		lastScheduledTime = clusterScan.Status.LastScheduleTime.Format("2006-01-02 15:04:05")
+	}
+	statusMessage := clusterScan.Status.StatusMessage
+
+	log.V(1).Info("ClusterScan status", "lastScheduledTime", lastScheduledTime, "statusMessage", statusMessage)
+
+	// Cleanup and delete the old jobs (failed and successful)
+
+	if len(failedJobs) > 0 {
+		for _, job := range failedJobs {
+			if err := r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground)); err != nil {
+				log.Error(err, "Unable to delete old failed job")
+				return ctrl.Result{}, err
+			} else {
+				log.V(0).Info("Successfully deleted old failed job", "job", job)
+			}
+		}
+	}
+
+	if len(successfulJobs) > 0 {
+		for _, job := range successfulJobs {
+			if err := r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
+				log.Error(err, "Unable to delete old successful job")
+			} else {
+				log.V(0).Info("Successfully deleted old successful job", "job", job)
+			}
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
