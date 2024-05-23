@@ -31,7 +31,7 @@ const (
 	// CronJob indicates that the ClusterScan (CRD) is a CronJob
 	CronJob ClusterJobType = "CronJob"
 
-	// Job indicates that the ClusterScan(CRD) is a Job
+	// Job indicates that the ClusterScan (CRD) is a Job
 	Job ClusterJobType = "Job"
 )
 

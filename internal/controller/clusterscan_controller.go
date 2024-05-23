@@ -143,6 +143,8 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 	}
 
+	// Update the status of the ClusterScan instance and output the status info to console
+
 	clusterScan.Status.LastScheduleTime = &metav1.Time{Time: time.Now()}
 	clusterScan.Status.StatusMessage = fmt.Sprintf("A %s with the name [%s] belonging to the namespace %s has been successfully scheduled", jobType, uniqueName, clusterScan.Namespace)
 
@@ -150,6 +152,8 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		log.Error(err, "Unable to update cluster scan status")
 		return ctrl.Result{}, err
 	}
+
+	log.V(1).Info("ClusterScan status", "lastScheduledTime", clusterScan.Status.LastScheduleTime.Format("2006-01-02 15:04:05"), "statusMessage", clusterScan.Status.StatusMessage)
 
 	return ctrl.Result{}, nil
 }
