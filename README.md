@@ -1,18 +1,137 @@
-# kubecontroller
-// TODO(user): Add simple overview of use/purpose
+<h1 align="center">Kubecontroller </h1>
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+**Kubecontroller** is a custom kubernetes controller built utilizing [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) with the purpose of using a **Custom Resource Definition** (CRD) known as `ClusterScan` to reconcile one-off [Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/) and re-occuring [CronJobs](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/).
 
-## Getting Started
+A `ClusterScan` is defined as follows:
 
-### Prerequisites
-- go version v1.21.0+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
+```golang
+type ClusterScan struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   ClusterScanSpec   `json:"spec,omitempty"`
+	Status ClusterScanStatus `json:"status,omitempty"`
+}
+```
+
+Looking closely at the struct definition, the major areas to focus on are the `ClusterScanSpec` and `ClusterScanStatus` which define what the `ClusterScan` resource is and what information is being updated throughout its lifetime.
+
+The `ClusterScanSpec` is defined as follows:
+
+```golang
+type ClusterScanSpec struct {
+	// Specifies whether this is a recurring job or not
+	Recurring bool `json:"recurring"`
+
+	// The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
+	Schedule string `json:"schedule"`
+
+	// Specifies the job that will be created when executing a CronJob.
+	JobTemplate batchv1.JobTemplateSpec `json:"jobTemplate"`
+}
+```
+
+`recurring`: Used to differentiate between jobs and cron jobs. This is a mandatory parameter.
+
+`Schedule`: Used to specify the schedule at which the cronjob will be executed. This is a mandatory parameter.
+
+`JobTemplateSpec`: Used to specify the details of the job/cronjob that will be executed. This is a mandatory parameter.
+
+Finally, the `ClusterScanStatus` is defined as follows:
+
+```golang
+type ClusterScanStatus struct {
+	// Information when was the last time the job was successfully scheduled.
+	// +optional
+	LastScheduleTime *metav1.Time `json:"lastScheduleTime,omitempty"`
+
+	// A detailed status message indicating the progress/completion status of the job.
+	StatusMessage string `json:"statusMessage,omitempty"`
+}
+```
+
+`LastScheduleTime`: Used to keep track of the time at which a job was scheduled for the specific ClusterScan instance.
+
+`StatusMessage`: Used to describe what is going on with the ClusterScan instance, such as creating the specified jobs/cronjobs.
+
+## Table of Contents
+- [Table of Contents](#table-of-contents)
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [Cluster Deployment](#cluster-deployment)
+  - [To Uninstall](#to-uninstall)
+- [Project Distribution](#project-distribution)
+- [Contributing](#contributing)
+- [License](#license)
+
+
+## Prerequisites
+
+- [Go](https://go.dev/dl/) version v1.21.0+
+- [Docker](https://docs.docker.com/get-docker/) version 17.03+.
+- [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) version v1.11.3+.
 - Access to a Kubernetes v1.11.3+ cluster.
+  - [kind](https://kind.sigs.k8s.io/)
+  - [minikube](https://minikube.sigs.k8s.io/docs/)
 
-### To Deploy on the cluster
+## Setup
+
+1. Clone this repository to your local machine.
+
+```bash
+git clone https://github.com/vikiru/kubecontroller.git
+cd kubecontroller
+```
+
+2. Setup a local cluster using either kind or minikube.
+
+   1. Setup a local cluster using kind
+    ```bash
+    kind create cluster
+    ```
+   2. Setup a local cluster using minikube
+    ```bash
+    minikube start
+    ```
+3. Install custom resource definition, `ClusterScan` onto the local cluster
+
+```bash
+make install
+```
+
+4. In a separate terminal, create custom resources and apply them to the cluster
+
+    1. For example, to create a ClusterScan resource that is set to run a cron job
+    ```bash
+    kubectl apply -f config/samples/cronjob_sample.yaml
+    ```
+    2. Alernatively, create a ClusterScan resource that is set to run a job
+    ```bash
+    kubectl apply -f config/samples/job_sample.yaml
+    ```
+
+5. Observe the newly created resources.
+
+```bash
+# To observe all jobs within the cluster 
+kubectl get jobs
+
+# To observe all cronjobs within the cluster
+kubectl get cronjobs
+
+# To observe all clusterscans within the cluster
+kubectl get clusterscans
+```
+
+6. (Optional) Delete resources with kubectl.
+
+```bash
+kubectl delete <custom resource name> <job name>
+```
+
+
+## Cluster Deployment
+
 **Build and push your image to the location specified by `IMG`:**
 
 ```sh
@@ -23,7 +142,7 @@ make docker-build docker-push IMG=<some-registry>/kubecontroller:tag
 And it is required to have access to pull the image from the working environment.
 Make sure you have the proper permission to the registry if the above commands don’t work.
 
-**Install the CRDs into the cluster:**
+**Install the `ClusterScan` api into the cluster:**
 
 ```sh
 make install
