@@ -157,7 +157,7 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Cleanup and delete the old jobs (failed and successful)
 
-	if len(failedJobs) > 1 {
+	if len(failedJobs) == 1 {
 		log.Info("Failed jobs count has reached threshold, attempting to delete old jobs.")
 		for _, job := range failedJobs {
 			if err := r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground)); err != nil {
@@ -169,7 +169,7 @@ func (r *ClusterScanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 	}
 
-	if len(successfulJobs) > 3 {
+	if len(successfulJobs) == 3 {
 		log.Info("Successful jobs count has reached threshold, attempting to delete old jobs.")
 		for _, job := range successfulJobs {
 			if err := r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
