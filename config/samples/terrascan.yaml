@@ -1,0 +1,20 @@
+apiVersion: webapp.clusterscan.api.io/v1
+kind: ClusterScan
+metadata:
+  labels:
+    app.kubernetes.io/name: project
+    app.kubernetes.io/managed-by: kustomize
+  name: terrascan
+spec:
+  recurring: True
+  schedule: "0 3 * * 0" # Weekly
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: terrascan
+            image: tenable/terrascan
+            command: ["terrascan scan"]
+          restartPolicy: OnFailure
+

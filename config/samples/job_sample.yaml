@@ -1,0 +1,19 @@
+apiVersion: webapp.clusterscan.api.io/v1
+kind: ClusterScan
+metadata:
+  labels:
+    app.kubernetes.io/name: project
+    app.kubernetes.io/managed-by: kustomize
+  name: pi
+spec:
+  recurring: False
+  schedule: ""
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: pi
+            image: perl:5.34.0
+            command: ["perl", "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+          restartPolicy: Never
