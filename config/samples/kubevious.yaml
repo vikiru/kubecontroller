@@ -1,0 +1,19 @@
+apiVersion: webapp.clusterscan.api.io/v1
+kind: ClusterScan
+metadata:
+  labels:
+    app.kubernetes.io/name: project
+    app.kubernetes.io/managed-by: kustomize
+  name: kubevious
+spec:
+  recurring: False
+  schedule: ""
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: kubevious
+            image: kubevious/cli:latest
+            command: ["kubevious lint kubevious.yaml"]
+          restartPolicy: Never
