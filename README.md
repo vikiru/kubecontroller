@@ -54,6 +54,16 @@ type ClusterScanStatus struct {
 
 `StatusMessage`: Used to describe what is going on with the ClusterScan instance, such as creating the specified jobs/cronjobs.
 
+For more information, please consider checking out the following files:
+
+- [ClusterScan](/api/v1/clusterscan_types.go)
+- [ClusterScan Controller](/internal/controller/clusterscan_controller.go)
+- [Sample Configs Folder](/config/samples/)
+  - [Simple CronJob sample](/config/samples/cronjob_sample.yaml)
+  - [Simple Job Sample](/config/samples/job_sample.yaml)
+  - [Kubevious Job Sample](/config/samples/kubevious.yaml)
+  - [Terrascan CronJob Sample](/config/samples/terrascan.yaml)
+
 ## Table of Contents
 - [Table of Contents](#table-of-contents)
 - [Prerequisites](#prerequisites)
@@ -85,27 +95,27 @@ cd kubecontroller
 
 2. Setup a local cluster using either kind or minikube.
 
-   1. Setup a local cluster using kind
+   1. Setup a local cluster using kind.
     ```bash
     kind create cluster
     ```
-   2. Setup a local cluster using minikube
+   2. Setup a local cluster using minikube.
     ```bash
     minikube start
     ```
-3. Install custom resource definition, `ClusterScan` onto the local cluster
+3. Install custom resource definition, `ClusterScan` onto the local cluster.
 
 ```bash
 make install
 ```
 
-4. In a separate terminal, create custom resources and apply them to the cluster
+4. In a separate terminal, create custom resources and apply them to the cluster.
 
-    1. For example, to create a ClusterScan resource that is set to run a cron job
+    1. For example, to create a ClusterScan resource that is set to run a cron job.
     ```bash
     kubectl apply -f config/samples/cronjob_sample.yaml
     ```
-    2. Alernatively, create a ClusterScan resource that is set to run a job
+    2. Alernatively, create a ClusterScan resource that is set to run a job.
     ```bash
     kubectl apply -f config/samples/job_sample.yaml
     ```
