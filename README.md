@@ -14,7 +14,10 @@ type ClusterScan struct {
 }
 ```
 
-Looking closely at the struct definition, the major areas to focus on are the `ClusterScanSpec` and `ClusterScanStatus` which define what the `ClusterScan` resource is and what information is being updated throughout its lifetime.
+Looking closely at the struct definition, the major areas to focus on are:
+
+- `ClusterScanSpec`: Defining what the `ClusterScan` resource is.
+- `ClusterScanStatus`: Defining what information is being updated throughout its lifetime.
 
 The `ClusterScanSpec` is defined as follows:
 
@@ -31,13 +34,13 @@ type ClusterScanSpec struct {
 }
 ```
 
-`recurring`: Used to differentiate between jobs and cron jobs. This is a mandatory parameter.
+`Recurring`: Used to differentiate between jobs and cron jobs. This is a mandatory parameter.
 
 `Schedule`: Used to specify the schedule at which the cronjob will be executed. This is a mandatory parameter.
 
 `JobTemplateSpec`: Used to specify the details of the job/cronjob that will be executed. This is a mandatory parameter.
 
-Finally, the `ClusterScanStatus` is defined as follows:
+Finally, `ClusterScanStatus` is defined as follows:
 
 ```golang
 type ClusterScanStatus struct {
@@ -50,16 +53,17 @@ type ClusterScanStatus struct {
 }
 ```
 
-`LastScheduleTime`: Used to keep track of the time at which a job was scheduled for the specific ClusterScan instance.
+`LastScheduleTime`: Used to keep track of the time at which a job was scheduled for the specific `ClusterScan` instance.
 
-`StatusMessage`: Used to describe what is going on with the ClusterScan instance, such as creating the specified jobs/cronjobs.
+`StatusMessage`: Used to describe what is going on with the `ClusterScan` instance, such as creating the specified jobs/cronjobs.
 
 For more information, please consider checking out the following files:
 
-- [ClusterScan](/api/v1/clusterscan_types.go)
+- [ClusterScan Type Definition](/api/v1/clusterscan_types.go)
 - [ClusterScan Controller](/internal/controller/clusterscan_controller.go)
-- [Sample Configs Folder](/config/samples/)
-  - [Simple CronJob sample](/config/samples/cronjob_sample.yaml)
+
+Sample job/cronjob definitions can be found within the `config/samples` directory:
+  - [Simple CronJob Sample](/config/samples/cronjob_sample.yaml)
   - [Simple Job Sample](/config/samples/job_sample.yaml)
   - [Kubevious Job Sample](/config/samples/kubevious.yaml)
   - [Terrascan CronJob Sample](/config/samples/terrascan.yaml)
@@ -103,7 +107,7 @@ cd kubecontroller
     ```bash
     minikube start
     ```
-3. Install custom resource definition, `ClusterScan` onto the local cluster.
+3. Install the `ClusterScan` api onto the local cluster.
 
 ```bash
 make install
@@ -137,6 +141,9 @@ kubectl get clusterscans
 
 ```bash
 kubectl delete <custom resource name> <job name>
+
+# For example, to delete one of the existing samples
+kubectl delete clusterscan cronjob-sample
 ```
 
 
